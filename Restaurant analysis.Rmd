@@ -1,0 +1,215 @@
+---
+title: "Restaurant analisyes"
+output: html_document
+---
+#Discribtion
+
+Historical data of demand for a product-center combination (Weeks: 1 to 145)
+Product(Meal) features such as category, sub-category, current price and discount
+Information for fulfillment centers like center area, city information, etc.
+
+Source:
+https://www.kaggle.com/gauravsahani/food-demand-prediction-dataset
+
+```{r}
+#package required
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(RColorBrewer)
+
+#data
+food <- read.csv("Food_demand.csv")
+
+```
+
+```{r}
+
+#get to know your data
+summary(food)
+glimpse(food)
+```
+
+#How much is the restaurant income ?
+
+```{r}
+income <- sum(food$checkout_price)
+```
+
+#What is minimum and maximum check out price Weakly?
+```{r}
+ weeks<- food %>% 
+          group_by(week) %>% 
+          summarise( weeklyCheckout = sum(checkout_price))
+
+max(weeks$weeklyCheckout)
+min(weeks$weeklyCheckout)
+```
+ Overall income of 145 centers is 654277.89 and the weekly income variance between 7613 and 1403 .
+ 
+#Which dish gives the most income?
+```{r}
+
+mealID <- food %>% 
+         group_by(meal_id) %>% 
+         summarise(checkoutPrice = sum(checkout_price))
+
+ggplot(mealID, aes(meal_id, checkoutPrice ))+
+  geom_jitter(shape = 16,width = 0.6, alpha = 0.5,
+              size = 2, color = plasma(51) ) +
+  labs(title = "Sum of Checkout Price",
+       x ="Meak ID",
+       y = "Checkout Price")+
+  theme_bw() +
+  theme(legend.position = "none",
+        strip.background = element_blank()) 
+
+range(mealID$checkoutPrice)
+
+```
+There are 51 types of dishes and their income to the company range between 3193.7 and 31373 .
+#How stable is the weekly chick out price ?
+```{r}
+
+weeklyChekout <- food %>% 
+                 group_by(week) %>% 
+                 summarise(checkoutPrice = sum(checkout_price))
+
+ggplot(weeklyChekout, aes(x= checkoutPrice))+
+  geom_histogram(fill = "#7570B3") +
+  labs(title = "Weely Check out price",
+       x ="Week",
+       y = "Check out") +
+  theme_test() +
+  theme(rect = element_blank())
+
+#mean
+checkoutMean <- mean(weeklyChekout$checkoutPrice)
+
+#sd
+checkoutSd <- sd(weeklyChekout$checkoutPrice)
+
+# SEM 
+SEM <- checkoutSd/sqrt(length(weeklyChekout))
+
+# 95% CI
+CI_lower <- checkoutMean - (1.96 * SEM)
+CI_upper <- checkoutMean + (1.96 * SEM)
+
+
+```
+
+#Which restaurant center is more popular by the number of orders?
+
+```{r}
+
+centerID <- food %>% 
+            group_by(center_id) %>%
+            filter(num_orders <5000) %>% 
+            summarise(numOrders = sum(num_orders))
+length(food$center_id)
+ 
+ggplot(centerID, aes(center_id, numOrders))+
+  geom_jitter(shape = 16,width = 0.6, alpha = 0.5,
+              size = 2, color = plasma(77) ) +
+  labs(title = "Sum of Number of Oreders",
+       x ="Center ID",
+       y = "Number of orders")+
+  theme_bw() +
+  theme(legend.position = "none",
+        strip.background = element_blank()) 
+
+
+max(centerID$numOrders)
+
+min(centerID$numOrders)
+
+
+```
+There is high difference between the number of orders between the centers.
+
+#How does the centerID influence the number of orders ?
+```{r}
+
+lm_food <- lm(checkout_price ~ center_id, data = food)
+summary(lm_food)
+coef(lm_food)
+anova(lm_food)
+```
+
+#How is the weekly orders of one center ?
+```{r}
+
+centerIncome10 <- food %>% 
+  group_by(week) %>% 
+  filter(center_id == 10) %>% 
+  summarise(num_orders)  
+
+ggplot(centerIncome10, aes(week, num_orders))+
+  geom_point(color = plasma(30)) +
+  geom_smooth(method = "lm", se =FALSE, color = 'black') + 
+  labs(title = "Number of Oreders of One Center",
+       x ="Week",
+       y = "Number of orders")+
+  theme_minimal() +
+  theme(legend.position = "non")
+
+
+mean(centerIncome10$num_orders)
+
+#Variance
+sd(centerIncome10$num_orders)
+```
+In this center the liner is going up by variation of 599.
+
+#another center
+```{r}
+
+centerIncome23 <- food %>% 
+  group_by(week) %>% 
+  filter(center_id == 23) %>% 
+  summarise(num_orders)
+
+ggplot(centerIncome23, aes(week, num_orders))+
+  geom_point(color = plasma(31)) +
+  geom_smooth(method = "lm", se =FALSE, color = 'black') + 
+  labs(title = "Number of Oreders of One Center",
+       x ="Week",
+       y = "Number of orders")+
+  theme_minimal() +
+  theme(legend.position = "non")
+
+mean(centerIncome23$num_orders)
+
+#Variance
+sd(centerIncome23$num_orders)
+
+```
+
+#all centers
+```{r}
+
+centerIncomeAll <- food %>% 
+  group_by(week) %>%
+  filter(num_orders < 1000) %>% 
+  summarise(allOrders = sum(num_orders))
+
+ggplot(centerIncomeAll, aes(week, allOrders))+
+  geom_point(color = plasma(145)) +
+  geom_smooth(method = "lm", se =FALSE, color = 'black') + 
+  labs(title = "Number of Oreders of All Center",
+       x ="Week",
+       y = "Number of orders")+
+  theme_minimal() +
+  theme(legend.position = "non")
+  
+mean(centerIncomeAll$num_orders)
+
+#Variance 
+
+sd(centerIncomeAll$allOrders)
+```
+We noticed that the orders are going slightly up in general through the time with variation of 1010.7 
+
+

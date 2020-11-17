@@ -1,0 +1,210 @@
+---
+title: "Food demands"
+output: html_document
+---
+
+#About the data
+
+Given the following information, the task is to predict the number of orders for the next 10 weeks for the meal combinations, which are:
+
+Historical data of demand for a product-center combination (Weeks: 1 to 145)
+Product(Meal) features such as category, sub-category, current price and discount
+Information for fulfillment centers like center area, city information, etc.The dataset, “Food Demand Forecasting” was released by an American professional services firm, Genpact for a Machine Learning Hackthon.
+
+Source:
+https://github.com/SaiPrasath-S/DemandPrediction
+
+#Questions need to be answered:
+1-What are the main controlling reasons determine the number of orders
+2-What are the predicted numbers and type of dishes each day (use the mean).
+#Data and libraries
+
+```{r}
+#package required
+library(rsample)
+library(tidyverse)
+library(stats)
+library(dplyr)
+library(caret)
+
+#data
+food <- read.csv("Food_demand.csv")
+# initial dimension
+dim(food)
+
+# response variable
+head(food$num_orders)
+
+```
+##Data splitting and distribution.
+
+```{r}
+            
+set.seed(123) # for reproducibility
+split <- initial_split(food, strata = "num_orders", prop = 0.7)
+food_train <- training(split)
+food_test  <- testing(split)
+
+#Model with lm()
+
+lm_food <- lm(num_orders ~ checkout_price, data = food_train)
+summary(lm_food)
+
+lm_food2 <- lm(num_orders ~ checkout_price + base_price, data = food_train)
+summary(lm_food2)
+
+lm_food3 <- lm(num_orders ~ ., data = food_train)
+summary(lm_food3)
+
+coef(lm_food) 
+coef(lm_food2) 
+
+```
+#knn
+```{r}
+# Specify resampling strategy
+cv <- trainControl(
+  method = "repeatedcv", 
+  number = 10, 
+  repeats = 5
+)
+
+# Create grid of hyperparameter values
+hyper_grid <- expand.grid(k = seq(2, 25, by = 1))
+
+# Tune a knn model using grid search
+knn_fit <- train(
+  num_orders ~ checkout_price, 
+  data = food_train, 
+  method = "knn", 
+  trControl = cv, 
+  tuneGrid = hyper_grid,
+  metric = "RMSE"
+)
+
+# 6. evaluate results
+# print model results
+knn_fit
+
+# plot cross validation results
+ggplot(knn_fit$results, aes(k, RMSE)) + 
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = scales::dollar)
+```
+#Plot of the top 10 most influential features.
+
+```{r prereqs-data}
+# we use model.matrix(...)[, -1] to discard the intercept
+X <- model.matrix(num_orders ~ ., food_train)[, -1]
+
+# transform y with log transformation
+Y <- log(food_train$num_orders)
+
+# perform resampling
+set.seed(123)
+cv_glmnet <- train(
+  x = X,
+  y = Y,
+  method = "glmnet",
+  preProc = c("zv", "center", "scale"),
+  trControl = trainControl(method = "cv", number = 10),
+  tuneLength = 10
+)
+
+vip(cv_glmnet, num_features = 20, geom = "point")
+
+```
+
+
+# Feature effects
+```{r}
+set.seed(123)
+cv_model2 <- train(
+  num_orders ~ checkout_price, 
+  data = food_train, 
+  method = "lm",
+  trControl = cv
+  )
+
+# linear regression model
+
+p1 <- pdp::partial(cv_model2, pred.var = "checkout_price", grid.resolution = 10) %>% 
+  ggplot(aes(checkout_price, yhat)) +
+  geom_line()
+p1
+
+set.seed(123)
+cv_model3 <- train(
+  num_orders ~ homepage_featured, 
+  data = food_train, 
+  method = "lm",
+  trControl = cv
+  )
+
+p2 <- pdp::partial(cv_model3, pred.var = "base_price", grid.resolution = 10) %>% 
+  ggplot(aes(base_price, yhat)) +
+  geom_line()
+p2
+
+
+#Assess the interaction of the top 2 predictors:
+pdp::partial(
+  cv_model2,
+  pred.var = c("checkout_price", "base_price"),
+  grid.resolution = 10
+  ) %>% 
+  pdp::plotPartial(
+    levelplot = FALSE,
+    zlab = "number of orders", 
+    drape = TRUE, 
+    colorkey = TRUE, 
+    screen = list(z = -20, x = -60)
+    )
+```
+# Tuning parameters
+```{r}
+# perform resampling
+# tuning grid
+hyper_grid <- expand.grid(
+  nprune = seq(2, 50, length.out = 10) %>% floor(),
+  degree = 1:3
+)
+
+set.seed(123)
+cv_mars <- train(
+  num_orders ~ ., 
+  data = food_train, 
+  trControl = trainControl(method = "cv", number = 10),
+  method = "earth",
+  tuneGrid = hyper_grid,
+  metric = "RMSE"
+  )
+
+# best model
+cv_mars$results %>%
+  filter(
+    nprune == cv_mars$bestTune$nprune,
+    degree == cv_mars$bestTune$degree
+    )
+
+# plot results
+plot(cv_mars)
+```
+
+
+#Model concerns
+```{r}
+#Linear relationship
+ggplot(food_train, aes(checkout_price, base_price)) + 
+  geom_point(size = 1, alpha = .4) + 
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_log10("Number of orders", labels = scales::dollar) +
+  xlab("price") +
+  ggtitle(paste("near-linear relationship."))
+
+```
+
+
+
+
