@@ -4,12 +4,7 @@ output: html_document
 ---
 #Discribtion
 
-Historical data of demand for a product-center combination (Weeks: 1 to 145)
-Product(Meal) features such as category, sub-category, current price and discount
-Information for fulfillment centers like center area, city information, etc.
-
-Source:
-https://www.kaggle.com/gauravsahani/food-demand-prediction-dataset
+Historical data of a restaurant income.
 
 ```{r}
 #package required
