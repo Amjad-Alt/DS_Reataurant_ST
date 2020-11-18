@@ -94,7 +94,7 @@ CI_upper <- checkoutMean + (1.96 * SEM)
 
 
 ```
-
+The weekly check out price of all centers is not staple, there are weeks of high income and others with low income. The average weekly income is 4512 with standard error of the mean 976.9. The lower confidence interval is 2597, and upper confidence interval is 6427. 
 #Which restaurant center is more popular by the number of orders?
 
 ```{r}
@@ -102,13 +102,16 @@ CI_upper <- checkoutMean + (1.96 * SEM)
 centerID <- food %>% 
             group_by(center_id) %>%
             filter(num_orders <5000) %>% 
-            summarise(numOrders = sum(num_orders))
+            summarise(numOrders = num_orders)
 length(food$center_id)
  
 ggplot(centerID, aes(center_id, numOrders))+
   geom_jitter(shape = 16,width = 0.6, alpha = 0.5,
-              size = 2, color = plasma(77) ) +
-  labs(title = "Sum of Number of Oreders",
+              size = 2, color = plasma(1998) ) +
+  stat_summary(fun.data = mean_sdl,
+               fun.args = list(mult = 1),
+               col = "black")+
+  labs(title = "Number of Oreders",
        x ="Center ID",
        y = "Number of orders")+
   theme_bw() +
@@ -122,7 +125,7 @@ min(centerID$numOrders)
 
 
 ```
-There is high difference between the number of orders between the centers.
+There are 1999 centers. The maximum number of orders is 3605 and the lowest is 13 orders.
 
 #How does the centerID influence the number of orders ?
 ```{r}
