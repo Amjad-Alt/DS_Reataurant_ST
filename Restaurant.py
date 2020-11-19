@@ -1,12 +1,3 @@
-#Discribtion
-
-'''Historical data of demand for a product-center combination (Weeks: 1 to 145)
-Product(Meal) features such as category, sub-category, current price and discount
-Information for fulfillment centers like center area, city information, etc.
-
-Source:
-https://www.kaggle.com/gauravsahani/food-demand-prediction-dataset'''
-
 
 #%%
 import math # Functions beyond the basic maths
@@ -35,14 +26,6 @@ weeklyChickout = food.groupby('week').checkout_price.sum()
 max(weeklyChickout)
 min(weeklyChickout)
 # %%
-#Which dish gives the most income?
-mealID = food.groupby('meal_id').checkout_price
-
-range(mealID.checkout_price) 
-
-sns.scatterplot(y='checkout_price', x='meal_id', data=food.groupby('meal_id').sum()['checkout_price'].reset_index())
-
-# %%
 #How stable is the weekly chick out price ?
 #n of observation in each group
 food.groupby('week').count()
@@ -61,21 +44,32 @@ SEM = checkoutSd/ np.sqrt(np.size(food.week))
 # 95% CI
 CI_lower = checkoutMean - 1.96 * SEM
 CI_upper = checkoutMean + 1.96 * SEM
-
 #%%
-#Which restaurant center is more popular by the number of orders?
-centerID = food.groupby('center_id').num_orders.sum()
+#Is there a relationship between the meal-ID and checkout price?
+lm_food2 = ols(" checkout_price ~ meal_id", data = food)
+results2 = lm_food2.fit()
+results2.summary()
+# compute anova
+aov_table2 = sm.stats.anova_lm(results2, typ=2)
+# %%
+#Which dish gives the most income?
+mealID = food.groupby('meal_id').checkout_price
 
-sns.scatterplot(y='num_orders', x='center_id', data=food.groupby('center_id').sum()['num_orders'].reset_index())
-
-max(centerID)
-min(centerID)
+sns.scatterplot(y='checkout_price', x='meal_id', data=food.groupby('meal_id').sum()['checkout_price'].reset_index())
 
 # %%
-#How does the centerID influence the number of orders ?
+##Is there a relationship between the number of orders and checkout price?
 lm_food = ols(" checkout_price ~ center_id", data = food)
 results = lm_food.fit()
 results.summary()
 
 # compute anova
 aov_table = sm.stats.anova_lm(results, typ=2)
+#%%
+#Which restaurant center is more popular by the number of orders?
+centerID = food.groupby('center_id').num_orders.sum()
+
+sns.scatterplot(y='num_orders', x='center_id', data=food.groupby('center_id').sum()['num_orders'].reset_index())
+
+np.mean(centerID)
+

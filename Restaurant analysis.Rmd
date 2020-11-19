@@ -2,9 +2,7 @@
 title: "Restaurant analisyes"
 output: html_document
 ---
-#Discribtion
 
-Historical data of a restaurant income.
 
 ```{r}
 #package required
@@ -41,30 +39,10 @@ income <- sum(food$checkout_price)
 max(weeks$weeklyCheckout)
 min(weeks$weeklyCheckout)
 ```
- Overall income of 145 centers is 654277.89 and the weekly income variance between 7613 and 1403 .
+ Overall income of 145 centers is 654277.89 and the maximum weekly income is 7613 and the lowest is 1403 .
  
-#Which dish gives the most income?
-```{r}
 
-mealID <- food %>% 
-         group_by(meal_id) %>% 
-         summarise(checkoutPrice = sum(checkout_price))
-
-ggplot(mealID, aes(meal_id, checkoutPrice ))+
-  geom_jitter(shape = 16,width = 0.6, alpha = 0.5,
-              size = 2, color = plasma(51) ) +
-  labs(title = "Sum of Checkout Price",
-       x ="Meak ID",
-       y = "Checkout Price")+
-  theme_bw() +
-  theme(legend.position = "none",
-        strip.background = element_blank()) 
-
-range(mealID$checkoutPrice)
-
-```
-There are 51 types of dishes and their income to the company range between 3193.7 and 31373 .
-#How stable is the weekly chick out price ?
+#How stable is the weekly chickout price ?
 ```{r}
 
 weeklyChekout <- food %>% 
@@ -94,7 +72,48 @@ CI_upper <- checkoutMean + (1.96 * SEM)
 
 
 ```
-The weekly check out price of all centers is not staple, there are weeks of high income and others with low income. The average weekly income is 4512 with standard error of the mean 976.9. The lower confidence interval is 2597, and upper confidence interval is 6427. 
+The weekly check out price of all centers is not staple, there are weeks of high income and others have low income. The average weekly income is 4512 with standard error of the mean 976.9. The lower confidence interval is 2597, and upper confidence interval is 6427. 
+
+#Is there a relationship between the meal-ID and checkout price?
+```{r}
+
+lm_food2 <- lm(checkout_price ~ meal_id, data = food)
+coef(lm_food2)
+anova(lm_food2)
+tidy(lm_food2)
+```
+There is high relationship between the meal-ID and the checkout price by 8.4 estimate , 0.006 standard error and p.value of 1.6 
+
+#Which dish gives the most income?
+```{r}
+
+mealID <- food %>% 
+         group_by(meal_id) %>% 
+         summarise(checkoutPrice = sum(checkout_price))
+
+ggplot(mealID, aes(meal_id, checkoutPrice ))+
+  geom_jitter(shape = 16,width = 0.6, alpha = 0.5,
+              size = 2, color = plasma(51) ) +
+  labs(title = "Sum of Checkout Price",
+       x ="Meak ID",
+       y = "Checkout Price")+
+  theme_bw() +
+  theme(legend.position = "none",
+        strip.background = element_blank()) 
+
+range(mealID$checkoutPrice)
+
+```
+There are 51 types of dishes and their income to the company range between 3193.7 and 31373 .
+
+#Is there a relationship between the number of orders and checkout price?
+```{r}
+
+lm_food <- lm(checkout_price ~ num_orders, data = food)
+coef(lm_food)
+anova(lm_food)
+tidy(lm_food)
+```
 #Which restaurant center is more popular by the number of orders?
 
 ```{r}
@@ -119,24 +138,12 @@ ggplot(centerID, aes(center_id, numOrders))+
         strip.background = element_blank()) 
 
 
-max(centerID$numOrders)
-
-min(centerID$numOrders)
-
+mean(centerID$numOrders)
 
 ```
-There are 1999 centers. The maximum number of orders is 3605 and the lowest is 13 orders.
+There are 1999 centers. The number of orders differ from center to another, the average weekly number of orders of all centers is 252 orders.
 
-#How does the centerID influence the number of orders ?
-```{r}
-
-lm_food <- lm(checkout_price ~ center_id, data = food)
-summary(lm_food)
-coef(lm_food)
-anova(lm_food)
-```
-
-#How is the weekly orders of one center ?
+#How many orders of one center ?
 ```{r}
 
 centerIncome10 <- food %>% 
@@ -156,10 +163,10 @@ ggplot(centerIncome10, aes(week, num_orders))+
 
 mean(centerIncome10$num_orders)
 
-#Variance
+#standard deviation of the values
 sd(centerIncome10$num_orders)
 ```
-In this center the liner is going up by variation of 599.
+In this center the average of number of orders is 572.standard deviation of the values is 599 .The linear is going slightly up. There is an extreme value around week 50. 
 
 #another center
 ```{r}
@@ -180,11 +187,11 @@ ggplot(centerIncome23, aes(week, num_orders))+
 
 mean(centerIncome23$num_orders)
 
-#Variance
+#standard deviation of the values
 sd(centerIncome23$num_orders)
 
 ```
-
+In this center the average of number of orders is 153.9.standard deviation of the values is 200 .The linear is going dawn.
 #all centers
 ```{r}
 
@@ -204,10 +211,11 @@ ggplot(centerIncomeAll, aes(week, allOrders))+
   
 mean(centerIncomeAll$num_orders)
 
-#Variance 
+#standard deviation of the values
 
 sd(centerIncomeAll$allOrders)
 ```
-We noticed that the orders are going slightly up in general through the time with variation of 1010.7 
+We noticed that the orders are going slightly up in general through the time with 1010.7 standard deviation of the values.
+
 
 
